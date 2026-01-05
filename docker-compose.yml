@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: icafe_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=icafe_registration
+    networks:
+      - icafe_network
+
+  api:
+    build: .
+    container_name: icafe_api
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - SERVER_HOST=0.0.0.0
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DATABASE=icafe_registration
+      - UPLOAD_PATH=/app/uploads
+      - BASE_URL=http://localhost:8080
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - mongodb
+    networks:
+      - icafe_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  icafe_network:
+    driver: bridge
