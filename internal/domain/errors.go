@@ -21,6 +21,9 @@ var (
 	// ErrEmailAlreadyExists is returned when email already registered
 	ErrEmailAlreadyExists = errors.New("email already registered")
 
+	// ErrPhoneAlreadyExists is returned when phone already registered
+	ErrPhoneAlreadyExists = errors.New("phone already registered")
+
 	// ErrInvalidFileType is returned when file type is not supported
 	ErrInvalidFileType = errors.New("invalid file type")
 

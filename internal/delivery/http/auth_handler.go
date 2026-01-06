@@ -23,10 +23,52 @@ func NewAuthHandler(router *gin.RouterGroup, uc domain.AuthUsecase) {
 
 	auth := router.Group("/auth")
 	{
+		auth.POST("/register", handler.Register)
 		auth.POST("/login", handler.Login)
 		auth.POST("/refresh", handler.RefreshToken)
 		auth.POST("/logout", handler.Logout)
 	}
+}
+
+// Register godoc
+// @Summary Register a new user
+// @Description Register a new user account with username, password and phone
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param user body domain.RegisterRequest true "Registration data"
+// @Success 201 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Router /auth/register [post]
+func (h *AuthHandler) Register(c *gin.Context) {
+	var req domain.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate request
+	if err := h.validator.Validate(&req); err != nil {
+		errors := validator.GetValidationErrors(err)
+		response.BadRequest(c, "Validation failed", mapToString(errors))
+		return
+	}
+
+	user, err := h.authUsecase.Register(c.Request.Context(), &req)
+	if err != nil {
+		switch err {
+		case domain.ErrAlreadyExists:
+			response.Conflict(c, "Username already exists", err.Error())
+		case domain.ErrPhoneAlreadyExists:
+			response.Conflict(c, "Phone number already registered", err.Error())
+		default:
+			response.InternalServerError(c, "Registration failed", err.Error())
+		}
+		return
+	}
+
+	response.Created(c, "Registration successful", user)
 }
 
 // Login godoc

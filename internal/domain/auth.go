@@ -43,6 +43,7 @@ type TokenClaims struct {
 
 // AuthUsecase represents the auth usecase contract
 type AuthUsecase interface {
+	Register(ctx context.Context, req *RegisterRequest) (*User, error)
 	Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*LoginResponse, error)
 	ValidateToken(token string) (*TokenClaims, error)

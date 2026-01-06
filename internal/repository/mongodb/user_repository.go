@@ -30,6 +30,10 @@ func NewUserRepository(db *mongo.Database) domain.UserRepository {
 		},
 		{
 			Keys:    bson.D{{Key: "email", Value: 1}},
+			Options: options.Index().SetUnique(true).SetSparse(true), // Sparse for optional email
+		},
+		{
+			Keys:    bson.D{{Key: "phone", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 	}
@@ -108,6 +112,20 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return &user, nil
 }
 
+// GetByPhone gets a user by phone
+func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*domain.User, error) {
+	var user domain.User
+	err := r.collection.FindOne(ctx, bson.M{"phone": phone}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, domain.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 // GetAll gets all users with pagination
 func (r *userRepository) GetAll(ctx context.Context, limit, offset int64) ([]*domain.User, error) {
 	opts := options.Find().
@@ -143,12 +161,14 @@ func (r *userRepository) Update(ctx context.Context, id string, user *domain.Use
 
 	update := bson.M{
 		"$set": bson.M{
-			"email":       user.Email,
-			"full_name":   user.FullName,
-			"role":        user.Role,
-			"permissions": user.Permissions,
-			"is_active":   user.IsActive,
-			"modified_on": user.ModifiedOn,
+			"email":              user.Email,
+			"phone":              user.Phone,
+			"full_name":          user.FullName,
+			"role":               user.Role,
+			"permissions":        user.Permissions,
+			"custom_permissions": user.CustomPermissions,
+			"is_active":          user.IsActive,
+			"modified_on":        user.ModifiedOn,
 		},
 	}
 

@@ -22,7 +22,7 @@ func NewUserUsecase(repo domain.UserRepository, timeout time.Duration) domain.Us
 	}
 }
 
-// Create creates a new user
+// Create creates a new user (admin only)
 func (u *userUsecase) Create(ctx context.Context, req *domain.CreateUserRequest) (*domain.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
@@ -36,13 +36,24 @@ func (u *userUsecase) Create(ctx context.Context, req *domain.CreateUserRequest)
 		return nil, domain.ErrAlreadyExists
 	}
 
-	// Check if email already exists
-	existingUser, err = u.userRepo.GetByEmail(ctx, req.Email)
+	// Check if phone already exists
+	existingUser, err = u.userRepo.GetByPhone(ctx, req.Phone)
 	if err != nil && err != domain.ErrNotFound {
 		return nil, err
 	}
 	if existingUser != nil {
-		return nil, domain.ErrEmailAlreadyExists
+		return nil, domain.ErrPhoneAlreadyExists
+	}
+
+	// Check if email already exists (if provided)
+	if req.Email != "" {
+		existingUser, err = u.userRepo.GetByEmail(ctx, req.Email)
+		if err != nil && err != domain.ErrNotFound {
+			return nil, err
+		}
+		if existingUser != nil {
+			return nil, domain.ErrEmailAlreadyExists
+		}
 	}
 
 	// Hash password
@@ -54,6 +65,7 @@ func (u *userUsecase) Create(ctx context.Context, req *domain.CreateUserRequest)
 	user := &domain.User{
 		Username: req.Username,
 		Email:    req.Email,
+		Phone:    req.Phone,
 		Password: string(hashedPassword),
 		FullName: req.FullName,
 		Role:     req.Role,
@@ -115,6 +127,18 @@ func (u *userUsecase) Update(ctx context.Context, id string, req *domain.UpdateU
 		existing.Email = req.Email
 	}
 
+	// Check if new phone already exists
+	if req.Phone != "" && req.Phone != existing.Phone {
+		existingByPhone, err := u.userRepo.GetByPhone(ctx, req.Phone)
+		if err != nil && err != domain.ErrNotFound {
+			return nil, err
+		}
+		if existingByPhone != nil {
+			return nil, domain.ErrPhoneAlreadyExists
+		}
+		existing.Phone = req.Phone
+	}
+
 	// Update fields if provided
 	if req.FullName != "" {
 		existing.FullName = req.FullName
@@ -124,6 +148,39 @@ func (u *userUsecase) Update(ctx context.Context, id string, req *domain.UpdateU
 	}
 	if req.IsActive != nil {
 		existing.IsActive = *req.IsActive
+	}
+	// Update custom permissions (admin can assign extra permissions beyond role)
+	if req.CustomPermissions != nil {
+		existing.CustomPermissions = req.CustomPermissions
+	}
+
+	if err := u.userRepo.Update(ctx, id, existing); err != nil {
+		return nil, err
+	}
+
+	return existing, nil
+}
+
+// UpdateRole updates user role and custom permissions (admin only)
+func (u *userUsecase) UpdateRole(ctx context.Context, id string, req *domain.UpdateUserRoleRequest) (*domain.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
+	defer cancel()
+
+	// Get existing user
+	existing, err := u.userRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update role if provided
+	if req.Role != "" {
+		existing.Role = req.Role
+		existing.Permissions = domain.GetPermissionsForRole(req.Role)
+	}
+
+	// Update custom permissions
+	if req.CustomPermissions != nil {
+		existing.CustomPermissions = req.CustomPermissions
 	}
 
 	if err := u.userRepo.Update(ctx, id, existing); err != nil {

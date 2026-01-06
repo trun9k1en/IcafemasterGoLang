@@ -28,6 +28,7 @@ func NewUserHandler(router *gin.RouterGroup, uc domain.UserUsecase) {
 	router.GET("/users", handler.GetAll)
 	router.GET("/users/:id", handler.GetByID)
 	router.PUT("/users/:id", handler.Update)
+	router.PUT("/users/:id/role", handler.UpdateRole)
 	router.PUT("/users/:id/password", handler.ChangePassword)
 	router.DELETE("/users/:id", handler.Delete)
 }
@@ -67,6 +68,8 @@ func (h *UserHandler) Create(c *gin.Context) {
 			response.Conflict(c, "Username already exists", err.Error())
 		case domain.ErrEmailAlreadyExists:
 			response.Conflict(c, "Email already exists", err.Error())
+		case domain.ErrPhoneAlreadyExists:
+			response.Conflict(c, "Phone already exists", err.Error())
 		default:
 			response.InternalServerError(c, "Failed to create user", err.Error())
 		}
@@ -176,6 +179,8 @@ func (h *UserHandler) Update(c *gin.Context) {
 			response.NotFound(c, "User not found")
 		case domain.ErrEmailAlreadyExists:
 			response.Conflict(c, "Email already exists", err.Error())
+		case domain.ErrPhoneAlreadyExists:
+			response.Conflict(c, "Phone already exists", err.Error())
 		default:
 			response.InternalServerError(c, "Failed to update user", err.Error())
 		}
@@ -183,6 +188,52 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	response.OK(c, "User updated successfully", user)
+}
+
+// UpdateRole godoc
+// @Summary Update user role and permissions
+// @Description Update user's role and custom permissions (admin only)
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "User ID"
+// @Param role body domain.UpdateUserRoleRequest true "Role and permissions data"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /users/{id}/role [put]
+func (h *UserHandler) UpdateRole(c *gin.Context) {
+	id := c.Param("id")
+
+	var req domain.UpdateUserRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate request
+	if err := h.validator.Validate(&req); err != nil {
+		errors := validator.GetValidationErrors(err)
+		response.BadRequest(c, "Validation failed", mapToString(errors))
+		return
+	}
+
+	user, err := h.userUsecase.UpdateRole(c.Request.Context(), id, &req)
+	if err != nil {
+		switch err {
+		case domain.ErrInvalidID:
+			response.BadRequest(c, "Invalid ID format", err.Error())
+		case domain.ErrNotFound:
+			response.NotFound(c, "User not found")
+		default:
+			response.InternalServerError(c, "Failed to update role", err.Error())
+		}
+		return
+	}
+
+	response.OK(c, "User role updated successfully", user)
 }
 
 // ChangePassword godoc

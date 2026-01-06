@@ -8,11 +8,10 @@ import (
 
 // Response represents the standard API response
 type Response struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-	Meta    *Meta       `json:"meta,omitempty"`
+	StatusCode int         `json:"statusCode"`
+	Message    string      `json:"message"`
+	Data       interface{} `json:"data,omitempty"`
+	Meta       *Meta       `json:"meta,omitempty"`
 }
 
 // Meta represents pagination metadata
@@ -25,28 +24,28 @@ type Meta struct {
 // Success sends a success response
 func Success(c *gin.Context, statusCode int, message string, data interface{}) {
 	c.JSON(statusCode, Response{
-		Success: true,
-		Message: message,
-		Data:    data,
+		StatusCode: statusCode,
+		Message:    message,
+		Data:       data,
 	})
 }
 
 // SuccessWithMeta sends a success response with pagination metadata
 func SuccessWithMeta(c *gin.Context, statusCode int, message string, data interface{}, meta *Meta) {
 	c.JSON(statusCode, Response{
-		Success: true,
-		Message: message,
-		Data:    data,
-		Meta:    meta,
+		StatusCode: statusCode,
+		Message:    message,
+		Data:       data,
+		Meta:       meta,
 	})
 }
 
 // Error sends an error response
 func Error(c *gin.Context, statusCode int, message string, err string) {
 	c.JSON(statusCode, Response{
-		Success: false,
-		Message: message,
-		Error:   err,
+		StatusCode: statusCode,
+		Message:    message,
+		Data:       err,
 	})
 }
 

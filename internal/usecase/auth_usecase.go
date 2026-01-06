@@ -36,6 +36,53 @@ func NewAuthUsecase(userRepo domain.UserRepository, jwtConfig *config.JWTConfig,
 	}
 }
 
+// Register creates a new user account (public registration)
+func (u *authUsecase) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
+	defer cancel()
+
+	// Check if username already exists
+	existingUser, err := u.userRepo.GetByUsername(ctx, req.Username)
+	if err != nil && err != domain.ErrNotFound {
+		return nil, err
+	}
+	if existingUser != nil {
+		return nil, domain.ErrAlreadyExists
+	}
+
+	// Check if phone already exists
+	existingUser, err = u.userRepo.GetByPhone(ctx, req.Phone)
+	if err != nil && err != domain.ErrNotFound {
+		return nil, err
+	}
+	if existingUser != nil {
+		return nil, domain.ErrPhoneAlreadyExists
+	}
+
+	// Hash password
+	hashedPassword, err := HashPassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create user with default customer role
+	user := &domain.User{
+		Username:    req.Username,
+		Phone:       req.Phone,
+		Password:    hashedPassword,
+		FullName:    req.FullName,
+		Role:        domain.RoleCustomer, // Default role for self-registration
+		Permissions: domain.GetPermissionsForRole(domain.RoleCustomer),
+		IsActive:    true,
+	}
+
+	if err := u.userRepo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 // Login authenticates user and returns tokens
 func (u *authUsecase) Login(ctx context.Context, req *domain.LoginRequest) (*domain.LoginResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
