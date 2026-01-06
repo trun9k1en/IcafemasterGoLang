@@ -43,6 +43,9 @@ func NewFileHandler(router *gin.RouterGroup, engine *gin.Engine, uc domain.FileU
 	// Alternative: serve files with custom headers for proper download/streaming
 	router.GET("/files/serve/:filename", handler.ServeFile)
 	router.GET("/videos/serve/:filename", handler.ServeVideo)
+
+	// Download by id
+	router.GET("/files/download-by-id/:id", handler.DownloadFileByID)
 }
 
 // UploadFile godoc
@@ -250,5 +253,35 @@ func (h *FileHandler) ServeVideo(c *gin.Context) {
 	c.Header("Accept-Ranges", "bytes")
 	c.Header("Content-Type", "video/mp4")
 
+	c.File(filePath)
+}
+
+func (h *FileHandler) DownloadFileByID(c *gin.Context) {
+	id := c.Param("id")
+
+	// 1. Lấy thông tin file từ DB
+	file, err := h.fileUsecase.GetByID(c.Request.Context(), id)
+	if err != nil {
+		switch err {
+		case domain.ErrInvalidID:
+			response.BadRequest(c, "Invalid ID format", err.Error())
+		case domain.ErrNotFound:
+			response.NotFound(c, "File not found")
+		default:
+			response.InternalServerError(c, "Failed to get file", err.Error())
+		}
+		return
+	}
+
+	// 2. Build path
+	filePath := filepath.Join(h.uploadConfig.Path, "files", file.FileName)
+
+	// 3. Set header download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", `attachment; filename="`+file.OriginalName+`"`)
+	c.Header("Content-Type", file.MimeType)
+	c.Header("Content-Transfer-Encoding", "binary")
+
+	// 4. Stream file
 	c.File(filePath)
 }

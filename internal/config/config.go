@@ -50,8 +50,8 @@ func LoadConfig() *Config {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	maxFileSize, _ := strconv.ParseInt(getEnv("MAX_FILE_SIZE", "52428800"), 10, 64) // 50MB default
-	accessTokenDuration, _ := strconv.ParseInt(getEnv("JWT_ACCESS_TOKEN_DURATION", "15"), 10, 64)   // 15 minutes
+	maxFileSize, _ := strconv.ParseInt(getEnv("MAX_FILE_SIZE", "52428800"), 10, 64)                  // 50MB default
+	accessTokenDuration, _ := strconv.ParseInt(getEnv("JWT_ACCESS_TOKEN_DURATION", "15"), 10, 64)    // 15 minutes
 	refreshTokenDuration, _ := strconv.ParseInt(getEnv("JWT_REFRESH_TOKEN_DURATION", "168"), 10, 64) // 7 days
 
 	return &Config{
@@ -72,6 +72,7 @@ func LoadConfig() *Config {
 				"application/pdf", "application/zip",
 				"application/msword",
 				"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+				"application/vnd.android.package-archive", // thêm APK
 			},
 			BaseURL: getEnv("BASE_URL", "http://localhost:8080"),
 		},
