@@ -78,6 +78,19 @@ func (r *customerRepository) GetByPhone(ctx context.Context, phone string) (*dom
 	return &customer, nil
 }
 
+// GetByEmail
+func (r *customerRepository) GetByEmail(ctx context.Context, email string) (*domain.Customer, error) {
+	var customer domain.Customer
+	err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&customer)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, domain.ErrNotFound
+		}
+		return nil, err
+	}
+	return &customer, nil
+}
+
 // GetAll gets all customers with pagination
 func (r *customerRepository) GetAll(ctx context.Context, limit, offset int64) ([]*domain.Customer, error) {
 	opts := options.Find().

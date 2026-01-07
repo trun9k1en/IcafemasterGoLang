@@ -45,30 +45,37 @@ func NewRegistrationHandler(router *gin.RouterGroup, uc domain.RegistrationUseca
 // @Router /registrations [post]
 func (h *RegistrationHandler) Create(c *gin.Context) {
 	var req domain.CreateRegistrationRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Invalid request body", err.Error())
+		response.BadRequest(c, "Dữ liệu không hợp lệ", err.Error())
 		return
 	}
 
-	// Validate request
+	// Đừng xóa đoạn này: Validate dữ liệu (email, phone...)
 	if err := h.validator.Validate(&req); err != nil {
 		errors := validator.GetValidationErrors(err)
-		response.BadRequest(c, "Validation failed", mapToString(errors))
+		response.BadRequest(c, "Thông tin chưa chính xác", mapToString(errors))
 		return
 	}
 
 	registration, err := h.registrationUsecase.Create(c.Request.Context(), &req)
 	if err != nil {
-		switch err {
-		case domain.ErrEmailAlreadyExists:
-			response.Conflict(c, "Email already registered", err.Error())
+
+		switch err.Error() {
+		case "EMAIL_ALREADY_EXISTS", "email_already_exists":
+			response.Conflict(c, "Email đã tồn tại trên hệ thống", err.Error())
+		case "PHONE_ALREADY_EXISTS", "phone_already_exists":
+			response.Conflict(c, "Số điện thoại đã tồn tại trên hệ thống", err.Error())
+		case "số điện thoại này đã được đăng ký khách hàng":
+			response.Conflict(c, "Số điện thoại này đã được sử dụng", err.Error())
 		default:
-			response.InternalServerError(c, "Failed to create registration", err.Error())
+
+			response.InternalServerError(c, "Đã có lỗi xảy ra", err.Error())
 		}
 		return
 	}
 
-	response.Created(c, "Registration created successfully", registration)
+	response.Created(c, "Đăng ký thành công", registration)
 }
 
 // GetAll godoc

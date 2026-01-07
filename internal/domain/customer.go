@@ -44,6 +44,7 @@ type CustomerRepository interface {
 	Create(ctx context.Context, customer *Customer) error
 	GetByID(ctx context.Context, id string) (*Customer, error)
 	GetByPhone(ctx context.Context, phone string) (*Customer, error)
+	GetByEmail(ctx context.Context, email string) (*Customer, error)
 	GetAll(ctx context.Context, limit, offset int64) ([]*Customer, error)
 	Update(ctx context.Context, id string, customer *Customer) error
 	Delete(ctx context.Context, id string) error

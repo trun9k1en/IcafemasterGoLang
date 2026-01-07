@@ -25,7 +25,7 @@ func NewRegistrationRepository(db *mongo.Database) domain.RegistrationRepository
 	}
 }
 
-// Create creates a new registration
+// Create creates a new registration log
 func (r *registrationRepository) Create(ctx context.Context, registration *domain.Registration) error {
 	registration.ID = primitive.NewObjectID()
 	registration.CreatedOn = time.Now()
