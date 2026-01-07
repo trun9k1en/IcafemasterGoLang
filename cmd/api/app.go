@@ -57,6 +57,7 @@ func (a *App) initRouter() {
 		a.Usecases.File,
 		a.Usecases.Auth,
 		a.Usecases.User,
+		a.Usecases.Customer,
 		a.Config,
 	)
 }

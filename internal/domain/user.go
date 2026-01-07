@@ -11,11 +11,8 @@ import (
 type Role string
 
 const (
-	RoleAdmin    Role = "admin"
-	RoleManager  Role = "manager"
-	RoleSale     Role = "sale"
-	RoleStaff    Role = "staff"
-	RoleCustomer Role = "customer"
+	RoleAdmin Role = "admin"
+	RoleSale  Role = "sale"
 )
 
 // Permission represents user permission
@@ -42,27 +39,7 @@ var RolePermissions = map[Role][]Permission{
 		PermissionDeleteFile,
 		PermissionManageUser,
 	},
-	RoleManager: {
-		PermissionReadRegistration,
-		PermissionWriteRegistration,
-		PermissionDeleteRegistration,
-		PermissionReadFile,
-		PermissionWriteFile,
-		PermissionDeleteFile,
-	},
 	RoleSale: {
-		PermissionReadRegistration,
-		PermissionWriteRegistration,
-		PermissionReadFile,
-		PermissionWriteFile,
-	},
-	RoleStaff: {
-		PermissionReadRegistration,
-		PermissionWriteRegistration,
-		PermissionReadFile,
-		PermissionWriteFile,
-	},
-	RoleCustomer: {
 		PermissionReadRegistration,
 		PermissionReadFile,
 	},
@@ -100,7 +77,7 @@ type CreateUserRequest struct {
 	Phone    string `json:"phone" validate:"required,min=10,max=15"`
 	Password string `json:"password" validate:"required,min=6,max=100"`
 	FullName string `json:"full_name" validate:"required,min=2,max=100"`
-	Role     Role   `json:"role" validate:"required,oneof=admin manager sale staff customer"`
+	Role     Role   `json:"role" validate:"required,oneof=admin sale"`
 }
 
 // UpdateUserRequest represents request to update user
@@ -108,7 +85,7 @@ type UpdateUserRequest struct {
 	Email             string       `json:"email" validate:"omitempty,email"`
 	Phone             string       `json:"phone" validate:"omitempty,min=10,max=15"`
 	FullName          string       `json:"full_name" validate:"omitempty,min=2,max=100"`
-	Role              Role         `json:"role" validate:"omitempty,oneof=admin manager sale staff customer"`
+	Role              Role         `json:"role" validate:"omitempty,oneof=admin sale"`
 	IsActive          *bool        `json:"is_active" validate:"omitempty"`
 	CustomPermissions []Permission `json:"custom_permissions" validate:"omitempty"` // Admin can assign custom permissions
 }
@@ -121,7 +98,7 @@ type ChangePasswordRequest struct {
 
 // UpdateUserRoleRequest represents request to update user role and permissions (admin only)
 type UpdateUserRoleRequest struct {
-	Role              Role         `json:"role" validate:"omitempty,oneof=admin manager sale staff customer"`
+	Role              Role         `json:"role" validate:"omitempty,oneof=admin sale"`
 	CustomPermissions []Permission `json:"custom_permissions" validate:"omitempty"`
 }
 

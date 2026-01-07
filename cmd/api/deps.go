@@ -26,6 +26,7 @@ func (a *App) initRepositories() {
 		Registration: mongodb.NewRegistrationRepository(a.Database.MongoDB.Database),
 		File:         mongodb.NewFileRepository(a.Database.MongoDB.Database),
 		User:         mongodb.NewUserRepository(a.Database.MongoDB.Database),
+		Customer:     mongodb.NewCustomerRepository(a.Database.MongoDB.Database),
 	}
 }
 
@@ -36,5 +37,6 @@ func (a *App) initUsecases() {
 		File:         usecase.NewFileUsecase(a.Repos.File, &a.Config.Upload, contextTimeout),
 		Auth:         usecase.NewAuthUsecase(a.Repos.User, &a.Config.JWT, contextTimeout),
 		User:         usecase.NewUserUsecase(a.Repos.User, contextTimeout),
+		Customer:     usecase.NewCustomerUsecase(a.Repos.Customer, contextTimeout),
 	}
 }

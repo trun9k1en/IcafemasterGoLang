@@ -36,7 +36,7 @@ func NewAuthUsecase(userRepo domain.UserRepository, jwtConfig *config.JWTConfig,
 	}
 }
 
-// Register creates a new user account (public registration)
+// Register creates a new user account (public registration with sale role)
 func (u *authUsecase) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
@@ -65,14 +65,14 @@ func (u *authUsecase) Register(ctx context.Context, req *domain.RegisterRequest)
 		return nil, err
 	}
 
-	// Create user with default customer role
+	// Create user with default sale role
 	user := &domain.User{
 		Username:    req.Username,
 		Phone:       req.Phone,
 		Password:    hashedPassword,
 		FullName:    req.FullName,
-		Role:        domain.RoleCustomer, // Default role for self-registration
-		Permissions: domain.GetPermissionsForRole(domain.RoleCustomer),
+		Role:        domain.RoleSale,
+		Permissions: domain.GetPermissionsForRole(domain.RoleSale),
 		IsActive:    true,
 	}
 

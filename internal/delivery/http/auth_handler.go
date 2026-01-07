@@ -32,7 +32,7 @@ func NewAuthHandler(router *gin.RouterGroup, uc domain.AuthUsecase) {
 
 // Register godoc
 // @Summary Register a new user
-// @Description Register a new user account with username, password and phone
+// @Description Register a new user account with username, password and phone (default role: sale)
 // @Tags auth
 // @Accept json
 // @Produce json
