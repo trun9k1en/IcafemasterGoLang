@@ -30,6 +30,8 @@ func NewFileHandler(router *gin.RouterGroup, engine *gin.Engine, uc domain.FileU
 	router.POST("/videos/upload", handler.UploadVideo)
 	router.GET("/files", handler.GetAllFiles)
 	router.GET("/videos", handler.GetAllVideos)
+	// Download by id
+	router.GET("/files/download-by-id/:id", handler.DownloadFileByID)
 	router.GET("/files/:id", handler.GetFileByID)
 	router.DELETE("/files/:id", handler.DeleteFile)
 
@@ -44,8 +46,6 @@ func NewFileHandler(router *gin.RouterGroup, engine *gin.Engine, uc domain.FileU
 	router.GET("/files/serve/:filename", handler.ServeFile)
 	router.GET("/videos/serve/:filename", handler.ServeVideo)
 
-	// Download by id
-	router.GET("/files/download-by-id/:id", handler.DownloadFileByID)
 }
 
 // UploadFile godoc

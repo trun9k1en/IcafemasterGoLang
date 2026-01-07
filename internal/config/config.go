@@ -72,7 +72,9 @@ func LoadConfig() *Config {
 				"application/pdf", "application/zip",
 				"application/msword",
 				"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-				"application/vnd.android.package-archive", // thêm APK
+				"application/vnd.android.package-archive", // Cho file .apk
+				"application/x-msdownload",                // Cho file .exe
+				"application/octet-stream",
 			},
 			BaseURL: getEnv("BASE_URL", "http://localhost:8080"),
 		},
