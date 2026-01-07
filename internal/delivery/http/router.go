@@ -14,6 +14,7 @@ type Router struct {
 	FileUsecase         domain.FileUsecase
 	AuthUsecase         domain.AuthUsecase
 	UserUsecase         domain.UserUsecase
+	CustomerUsecase     domain.CustomerUsecase
 	Config              *config.Config
 }
 
@@ -23,6 +24,7 @@ func NewRouter(
 	fileUsecase domain.FileUsecase,
 	authUsecase domain.AuthUsecase,
 	userUsecase domain.UserUsecase,
+	customerUsecase domain.CustomerUsecase,
 	cfg *config.Config,
 ) *Router {
 	// Set Gin mode
@@ -44,6 +46,7 @@ func NewRouter(
 		FileUsecase:         fileUsecase,
 		AuthUsecase:         authUsecase,
 		UserUsecase:         userUsecase,
+		CustomerUsecase:     customerUsecase,
 		Config:              cfg,
 	}
 
@@ -84,6 +87,9 @@ func (r *Router) setupRoutes() {
 			{
 				NewUserHandler(adminOnly, r.UserUsecase)
 			}
+
+			// Customer routes (admin can CRUD, sale can only read)
+			NewCustomerHandler(protected, r.CustomerUsecase)
 		}
 	}
 }

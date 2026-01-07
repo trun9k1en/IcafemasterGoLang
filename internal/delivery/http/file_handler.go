@@ -1,13 +1,12 @@
 package http
 
 import (
-	"net/http"
-	"path/filepath"
-	"strconv"
-
 	"icafe-registration/internal/config"
 	"icafe-registration/internal/domain"
 	"icafe-registration/pkg/response"
+	"net/http"
+	"path/filepath"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )

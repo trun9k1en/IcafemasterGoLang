@@ -33,6 +33,7 @@ type RepositoryDeps struct {
 	Registration domain.RegistrationRepository
 	File         domain.FileRepository
 	User         domain.UserRepository
+	Customer     domain.CustomerRepository
 }
 
 // UsecaseDeps holds all usecases
@@ -41,6 +42,7 @@ type UsecaseDeps struct {
 	File         domain.FileUsecase
 	Auth         domain.AuthUsecase
 	User         domain.UserUsecase
+	Customer     domain.CustomerUsecase
 }
 
 // =============================================================================
