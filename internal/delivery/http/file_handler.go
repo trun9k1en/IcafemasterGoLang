@@ -4,7 +4,9 @@ import (
 	"icafe-registration/internal/config"
 	"icafe-registration/internal/domain"
 	"icafe-registration/pkg/response"
+	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -234,12 +236,18 @@ func (h *FileHandler) ServeFile(c *gin.Context) {
 	filename := c.Param("filename")
 	filePath := filepath.Join(h.uploadConfig.Path, "files", filename)
 
-	// Set headers for file download
+	if info, err := os.Stat(filePath); err != nil {
+		response.NotFound(c, "File not found")
+		return
+	} else if info.IsDir() {
+		response.BadRequest(c, "Invalid file", "path points to a directory")
+		return
+	}
+
 	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Disposition", `attachment; filename="`+filename+`"`)
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Transfer-Encoding", "binary")
-
 	c.File(filePath)
 }
 
@@ -256,31 +264,49 @@ func (h *FileHandler) ServeVideo(c *gin.Context) {
 }
 
 func (h *FileHandler) DownloadFileByID(c *gin.Context) {
-	id := c.Param("id")
+	log.Println("🔥 DOWNLOAD HANDLER HIT 🔥")
 
-	// 1. Lấy thông tin file từ DB
+	id := c.Param("id")
+	log.Println("Requested File ID:", id)
+
 	file, err := h.fileUsecase.GetByID(c.Request.Context(), id)
 	if err != nil {
-		switch err {
-		case domain.ErrInvalidID:
-			response.BadRequest(c, "Invalid ID format", err.Error())
-		case domain.ErrNotFound:
-			response.NotFound(c, "File not found")
-		default:
-			response.InternalServerError(c, "Failed to get file", err.Error())
-		}
+		log.Println("ERROR fetching file from DB:", err)
+		response.NotFound(c, "File not found")
 		return
 	}
 
-	// 2. Build path
-	filePath := filepath.Join(h.uploadConfig.Path, "files", file.FileName)
+	log.Println("File found in DB:")
+	log.Println("  FileName:", file.FileName)
+	log.Println("  OriginalName:", file.OriginalName)
+	log.Println("  FilePath (DB):", file.FilePath)
+	log.Println("  MimeType:", file.MimeType)
+	log.Println("  Size:", file.Size)
+	log.Println("  URL:", file.URL)
 
-	// 3. Set header download
-	c.Header("Content-Description", "File Transfer")
+	// ✅ file.FilePath = relative path, ví dụ: files/xxx.apk
+	relativePath := filepath.Clean(file.FilePath)
+
+	// ✅ build absolute path: ./uploads + relative path
+	filePath := filepath.Join(h.uploadConfig.Path, relativePath)
+	log.Println("Upload.Path (config):", h.uploadConfig.Path)
+	log.Println("Relative Path (from DB):", relativePath)
+	log.Println("Final absolute filePath:", filePath)
+
+	// check file existence
+	if info, err := os.Stat(filePath); err != nil {
+		log.Println("STAT ERROR:", err)
+		response.NotFound(c, "File not found on server")
+		return
+	} else {
+		log.Println("File exists on disk, size:", info.Size())
+	}
+
 	c.Header("Content-Disposition", `attachment; filename="`+file.OriginalName+`"`)
 	c.Header("Content-Type", file.MimeType)
 	c.Header("Content-Transfer-Encoding", "binary")
 
-	// 4. Stream file
+	log.Println("Starting file download...")
 	c.File(filePath)
+	log.Println("Download finished for:", file.OriginalName)
 }

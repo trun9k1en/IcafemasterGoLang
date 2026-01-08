@@ -12,8 +12,6 @@ import (
 
 	"icafe-registration/internal/config"
 	"icafe-registration/internal/domain"
-
-	"github.com/google/uuid"
 )
 
 type fileUsecase struct {
@@ -23,7 +21,11 @@ type fileUsecase struct {
 }
 
 // NewFileUsecase creates a new file usecase
-func NewFileUsecase(repo domain.FileRepository, uploadConfig *config.UploadConfig, timeout time.Duration) domain.FileUsecase {
+func NewFileUsecase(
+	repo domain.FileRepository,
+	uploadConfig *config.UploadConfig,
+	timeout time.Duration,
+) domain.FileUsecase {
 	return &fileUsecase{
 		fileRepo:       repo,
 		uploadConfig:   uploadConfig,
@@ -31,8 +33,13 @@ func NewFileUsecase(repo domain.FileRepository, uploadConfig *config.UploadConfi
 	}
 }
 
-// Upload uploads a file
-func (u *fileUsecase) Upload(ctx context.Context, fileHeader *multipart.FileHeader, fileType domain.FileType) (*domain.File, error) {
+// Upload uploads a file (DOCUMENT / VIDEO) với TÊN GỐC, KHÔNG UUID
+func (u *fileUsecase) Upload(
+	ctx context.Context,
+	fileHeader *multipart.FileHeader,
+	fileType domain.FileType,
+) (*domain.File, error) {
+
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
@@ -41,65 +48,72 @@ func (u *fileUsecase) Upload(ctx context.Context, fileHeader *multipart.FileHead
 		return nil, domain.ErrFileTooLarge
 	}
 
-	// Get content type
+	// Validate content type
 	contentType := fileHeader.Header.Get("Content-Type")
 	if !u.isAllowedType(contentType) {
 		return nil, domain.ErrInvalidFileType
 	}
 
-	// Open the uploaded file
+	// Open source file
 	src, err := fileHeader.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer src.Close()
 
-	// Generate unique filename
-	ext := filepath.Ext(fileHeader.Filename)
-	uniqueFileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+	// Sử dụng tên gốc
+	fileName := fileHeader.Filename
 
-	// Determine subdirectory based on file type
+	// Determine sub directory
 	subDir := "files"
 	if fileType == domain.FileTypeVideo {
 		subDir = "videos"
 	}
 
-	// Create directory if not exists
+	// ===== ABSOLUTE PATH (ghi file ra disk) =====
 	uploadDir := filepath.Join(u.uploadConfig.Path, subDir)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		return nil, err
 	}
 
-	// Create destination file
-	filePath := filepath.Join(uploadDir, uniqueFileName)
-	dst, err := os.Create(filePath)
+	diskPath := filepath.Join(uploadDir, fileName)
+
+	// Nếu file đã tồn tại, ghi đè
+	dst, err := os.Create(diskPath)
 	if err != nil {
 		return nil, err
 	}
 	defer dst.Close()
 
-	// Copy file content
 	if _, err := io.Copy(dst, src); err != nil {
 		return nil, err
 	}
 
-	// Create file URL
-	fileURL := fmt.Sprintf("%s/api/v1/%s/%s", u.uploadConfig.BaseURL, subDir, uniqueFileName)
+	// ===== RELATIVE PATH (lưu DB) =====
+	dbPath := filepath.Join(subDir, fileName)
 
-	// Create file record
+	// Build file URL
+	fileURL := fmt.Sprintf(
+		"%s/%s/serve/%s",
+		strings.TrimRight(u.uploadConfig.BaseURL, "/"),
+		subDir,
+		fileName,
+	)
+
+	// Create domain file
 	file := &domain.File{
-		FileName:     uniqueFileName,
+		FileName:     fileName,
 		OriginalName: fileHeader.Filename,
-		FilePath:     filePath,
+		FilePath:     dbPath, // ✅ chỉ lưu relative path
 		FileType:     fileType,
 		MimeType:     contentType,
 		Size:         fileHeader.Size,
 		URL:          fileURL,
 	}
 
+	// Lưu vào DB
 	if err := u.fileRepo.Create(ctx, file); err != nil {
-		// Remove uploaded file if database insert fails
-		os.Remove(filePath)
+		_ = os.Remove(diskPath)
 		return nil, err
 	}
 
@@ -115,7 +129,12 @@ func (u *fileUsecase) GetByID(ctx context.Context, id string) (*domain.File, err
 }
 
 // GetAll gets all files with pagination
-func (u *fileUsecase) GetAll(ctx context.Context, fileType domain.FileType, limit, offset int64) ([]*domain.File, int64, error) {
+func (u *fileUsecase) GetAll(
+	ctx context.Context,
+	fileType domain.FileType,
+	limit, offset int64,
+) ([]*domain.File, int64, error) {
+
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
@@ -132,29 +151,28 @@ func (u *fileUsecase) GetAll(ctx context.Context, fileType domain.FileType, limi
 	return files, total, nil
 }
 
-// Delete deletes a file
+// Delete deletes file (DB + physical file)
 func (u *fileUsecase) Delete(ctx context.Context, id string) error {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
-	// Get file info first
 	file, err := u.fileRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	// Delete from database
 	if err := u.fileRepo.Delete(ctx, id); err != nil {
 		return err
 	}
 
-	// Delete physical file
-	os.Remove(file.FilePath)
+	// build absolute path before delete
+	absPath := filepath.Join(u.uploadConfig.Path, file.FilePath)
+	_ = os.Remove(absPath)
 
 	return nil
 }
 
-// isAllowedType checks if the content type is allowed
+// isAllowedType checks if content type is allowed
 func (u *fileUsecase) isAllowedType(contentType string) bool {
 	for _, allowed := range u.uploadConfig.AllowedTypes {
 		if strings.EqualFold(contentType, allowed) {

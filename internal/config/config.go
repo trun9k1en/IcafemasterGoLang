@@ -64,7 +64,8 @@ func LoadConfig() *Config {
 			Database: getEnv("MONGODB_DATABASE", "icafe_registration"),
 		},
 		Upload: UploadConfig{
-			Path:        getEnv("UPLOAD_PATH", "./uploads"),
+			Path: getEnv("UPLOAD_PATH", "uploads"), // ✅ KHÔNG ./
+
 			MaxFileSize: maxFileSize,
 			AllowedTypes: []string{
 				"image/jpeg", "image/png", "image/gif",

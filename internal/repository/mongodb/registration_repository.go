@@ -100,12 +100,12 @@ func (r *registrationRepository) Update(ctx context.Context, id string, registra
 
 	update := bson.M{
 		"$set": bson.M{
-			"full_name":       registration.FullName,
-			"phone_number":    registration.PhoneNumber,
-			"email":           registration.Email,
-			"address":         registration.Address,
-			"workstation_num": registration.WorkstationNum,
-			"modified_on":     registration.ModifiedOn,
+			"full_name":         registration.FullName,
+			"phone_number":      registration.PhoneNumber,
+			"email":             registration.Email,
+			"address":           registration.Address,
+			"workstation_range": registration.WorkstationRange,
+			"modified_on":       registration.ModifiedOn,
 		},
 	}
 

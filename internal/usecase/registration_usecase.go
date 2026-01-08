@@ -26,45 +26,63 @@ func NewRegistrationUsecase(
 	}
 }
 
-func (u *registrationUsecase) Create(ctx context.Context, req *domain.CreateRegistrationRequest) (*domain.Registration, error) {
+func (u *registrationUsecase) Create(
+	ctx context.Context,
+	req *domain.CreateRegistrationRequest,
+) (*domain.Registration, error) {
+
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
-	// 1. Kiểm tra Email trong bảng Customers
+	// Check email
 	existingEmail, err := u.customerRepo.GetByEmail(ctx, req.Email)
 	if err == nil && existingEmail != nil {
 		return nil, fmt.Errorf("EMAIL_ALREADY_EXISTS")
 	}
+	if err != nil && err != domain.ErrNotFound {
+		return nil, err
+	}
 
-	// 2. Kiểm tra Số điện thoại trong bảng Customers
+	// Check phone
 	existingPhone, err := u.customerRepo.GetByPhone(ctx, req.PhoneNumber)
 	if err == nil && existingPhone != nil {
 		return nil, fmt.Errorf("PHONE_ALREADY_EXISTS")
 	}
+	if err != nil && err != domain.ErrNotFound {
+		return nil, err
+	}
 
-	// 3. Nếu không trùng, tiến hành tạo mới Customer
+	// Create customer (PHỤC VỤ ADMIN)
 	customer := &domain.Customer{
-		FullName:    req.FullName,
-		PhoneNumber: req.PhoneNumber,
-		Email:       req.Email,
-		Address:     req.Address,
-		Note:        fmt.Sprintf("Web - Máy: %d", req.WorkstationNum),
-		IsActive:    true,
+		FullName:         req.FullName,
+		PhoneNumber:      req.PhoneNumber,
+		Email:            req.Email,
+		Address:          req.Address,
+		WorkstationRange: req.WorkstationRange,
+		Note:             fmt.Sprintf("Web đăng ký – Máy: %s", req.WorkstationRange),
+		IsActive:         true,
 	}
 
 	if err := u.customerRepo.Create(ctx, customer); err != nil {
 		return nil, err
 	}
 
-	// 4. Lưu log registration
+	now := time.Now()
+
+	// Log registration
 	registration := &domain.Registration{
-		FullName:       req.FullName,
-		PhoneNumber:    req.PhoneNumber,
-		Email:          req.Email,
-		Address:        req.Address,
-		WorkstationNum: req.WorkstationNum,
+		FullName:         req.FullName,
+		PhoneNumber:      req.PhoneNumber,
+		Email:            req.Email,
+		Address:          req.Address,
+		WorkstationRange: req.WorkstationRange,
+		CreatedOn:        now,
+		ModifiedOn:       now,
 	}
-	_ = u.registrationRepo.Create(ctx, registration)
+
+	if err := u.registrationRepo.Create(ctx, registration); err != nil {
+		return nil, err
+	}
 
 	return registration, nil
 }

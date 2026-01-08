@@ -35,11 +35,15 @@ func (u *customerUsecase) Create(ctx context.Context, req *domain.CreateCustomer
 	}
 
 	customer := &domain.Customer{
-		FullName:    req.FullName,
-		PhoneNumber: req.PhoneNumber,
-		Email:       req.Email,
-		Address:     req.Address,
-		Note:        req.Note,
+		FullName:         req.FullName,
+		PhoneNumber:      req.PhoneNumber,
+		Email:            req.Email,
+		Address:          req.Address,
+		Note:             req.Note,
+		WorkstationRange: req.WorkstationRange,
+		IsActive:         true,
+		CreatedOn:        time.Now(),
+		ModifiedOn:       time.Now(),
 	}
 
 	if err := u.customerRepo.Create(ctx, customer); err != nil {
